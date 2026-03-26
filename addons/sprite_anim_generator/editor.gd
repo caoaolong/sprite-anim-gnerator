@@ -7,7 +7,7 @@ const PREVIEW_LABEL_HEIGHT := 24.0
 const PREVIEW_BORDER_COLOR := Color(0.45, 0.45, 0.45, 0.1)
 
 var texture: Texture2D
-var rows: Array[int] = []
+var rows: Array[Dictionary] = []
 var export_file_dialog: FileDialog
 
 @onready var hframes_spinbox: SpinBox = $MarginContainer/VBoxContainer/GridContainer/HFrames
@@ -91,7 +91,10 @@ func _create_preview_grid() -> void:
                 texture_rect.texture = atlas
                 texture_grid.add_child(texture_rect)
                 row_frames_count += 1
-        rows.append(row_frames_count)
+        rows.append({
+            "count": row_frames_count,
+            "name_edit": name_edit
+        })
 
 
 func _generate_sprite_frames(anim_name: String, row: int, count: int) -> SpriteFrames:
@@ -128,8 +131,18 @@ func _on_frames_changed(value):
 
 
 func _generate_all_animations():
+    var has_default_anim = false
     for i in range(rows.size()):
-        var anim_name = "Anim%d" % i
+        if _get_row_anim_name(i).to_lower() == "default":
+            has_default_anim = true
+            break
+
+    if not has_default_anim:
+        push_warning("请设置default动画后再导出")
+        return
+
+    for i in range(rows.size()):
+        var anim_name = _get_row_anim_name(i)
         _generate_animation(anim_name, i)
 
 
@@ -208,7 +221,7 @@ func _layout_preview_sprites() -> void:
 
 func _generate_animation(anim_name: String, row: int):
     var animated_sprite = AnimatedSprite2D.new()
-    var frames = _generate_sprite_frames(anim_name, row, rows[row])
+    var frames = _generate_sprite_frames(anim_name, row, _get_row_count(row))
     animated_sprite.set_meta("preview_item", true)
     animated_sprite.set_meta("anim_name", anim_name)
     animated_sprite.frames = frames
@@ -226,31 +239,33 @@ func _setup_export_file_dialog() -> void:
     add_child(export_file_dialog)
 
 
-func _get_animation_name_for_row(row: int) -> String:
-    var columns = int(hframes_spinbox.value) + 1
+func _get_row_anim_name(row: int) -> String:
     var row_name = "Anim%d" % row
-    var row_header_index = row * columns
-    if row_header_index < 0 or row_header_index >= texture_grid.get_child_count():
+    if row < 0 or row >= rows.size():
         return row_name
 
-    var row_header = texture_grid.get_child(row_header_index)
-    if row_header is VBoxContainer and row_header.get_child_count() > 0:
-        var input = row_header.get_child(0)
-        if input is LineEdit:
-            var custom_name = input.text.strip_edges()
-            if not custom_name.is_empty():
-                return custom_name
+    var input = rows[row].get("name_edit", null) as LineEdit
+    if input != null:
+        var custom_name = input.text.strip_edges()
+        if not custom_name.is_empty():
+            return custom_name
     return row_name
+
+
+func _get_row_count(row: int) -> int:
+    if row < 0 or row >= rows.size():
+        return 0
+    return int(rows[row].get("count", 0))
 
 
 func _build_export_frames() -> SpriteFrames:
     var export_frames = SpriteFrames.new()
     for row in range(rows.size()):
-        var frame_count = rows[row]
+        var frame_count = _get_row_count(row)
         if frame_count <= 0:
             continue
 
-        var anim_name = _get_animation_name_for_row(row)
+        var anim_name = _get_row_anim_name(row)
         export_frames.add_animation(anim_name)
         export_frames.set_animation_speed(anim_name, fps_spinbox.value)
         var cw = texture.get_width() / hframes_spinbox.value
