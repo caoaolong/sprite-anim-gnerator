@@ -24,7 +24,7 @@ func _exit_tree() -> void:
         editor = null
 
 func _get_plugin_icon() -> Texture2D:
-    return preload("res://addons/sprite_anim_generator/logo.svg")
+    return preload("res://addons/sprite_anim_generator/logo.png")
 
 
 func _get_plugin_name() -> String:
