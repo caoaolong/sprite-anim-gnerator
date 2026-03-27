@@ -29,7 +29,6 @@ func _ready() -> void:
     hframes_spinbox.value_changed.connect(_on_frames_changed)
     vframes_spinbox.value_changed.connect(_on_frames_changed)
     generate_all_button.pressed.connect(_generate_all_animations)
-    export_button.pressed.connect(_on_export_button_pressed)
     _setup_export_file_dialog()
     _clear_preview_sprites()
 
@@ -57,7 +56,7 @@ func _create_preview_grid() -> void:
     texture_grid.columns = hframes_spinbox.value + 1
     for child in texture_grid.get_children():
         child.queue_free()
-    # 添加图片预览
+    # Build the per-row preview grid.
     var image = texture.get_image()
     rows.clear()
     for iy in range(vframes_spinbox.value):
@@ -138,7 +137,7 @@ func _generate_all_animations():
             break
 
     if not has_default_anim:
-        push_warning("请设置default动画后再导出")
+        push_warning("Set one animation name to 'default' before exporting.")
         return
 
     for i in range(rows.size()):
